@@ -28,8 +28,10 @@ act
  
     sendSwitchOnXray: Arm;
     receiveSwitchOnXray: Arm;
+	switchOnXrayInternal: Arm;
     sendSwitchOffXray: Arm;
     receiveSwitchOffXray: Arm;
+	switchOffXrayInternal: Arm;
     sendMoveTable: TableDirection;
     receiveMoveTable: TableDirection;
     sendMoveArm: Arm # ArmDirection;
@@ -39,22 +41,25 @@ act
         
 proc
 	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) = 
-		pressButton(start) . (patientOnTable && !emergencyMode) -> IOControl(true, emergencyMode, patientOnTable) <> IOControl()
+		  pressButton(start) . (patientOnTable && !emergencyMode) -> IOControl(true, emergencyMode, patientOnTable) <> IOControl()
 		+ pressButton(stop) . IOControl(false, emergencyMode, patientOnTable) 
 		+ pressButton(emergency) . IOControl(false, true, patientOnTable)
 		+ (emergencyMode) -> releaseButton(emergency) . IOControl(operationOngoing, false, patientOnTable) 
 		+ weightSensorOn . IOControl(operationOngoing, emergencyMode, true)
 		+ weightSensorOff . IOControl(operationOngoing, emergencyMode, false)
 		+ sum pedal: Pedal. pressPedal(pedal) . (!emergencyMode && operationOngoing && patientOnTable) -> sendSwitchOnXray(translate(pedal)) . IOControl() <> IOControl()
-		+ sum pedal: Pedal. releasePedal(pedal) -> sendSwitchOffXray(translate(pedal)) . IOControl() <> IOControl();
+		+ sum pedal: Pedal. releasePedal(pedal) . sendSwitchOffXray(translate(pedal)) . IOControl();
 	Movement = receiveMoveTable(upT) | receiveMoveArm(arm1, forwardsA) | receiveRotateArm(arm1, clockwise) | Movement;
 	XRayControl = 
-		
-		;
+		  sum arm: Arm. receiveSwitchOnXray(arm)  . switchOnXray(arm) . XRayControl
+		+ sum arm: Arm. receiveSwitchOffXray(arm) . switchOffXray(arm) . XRayControl;
 
 init
 	allow(
 		{ 
+			% internal actions
+			switchOnXrayInternal,
+			% external actions
             pressButton, 
             releaseButton,
             pressPedal,
@@ -71,7 +76,7 @@ init
         },
 		comm(
 			{ 
-               sendSwitchOnXray | receiveSwitchOnXray -> switchOnXray,
+               sendSwitchOnXray | receiveSwitchOnXray -> switchOnXrayInternal,
                sendSwitchOffXray | receiveSwitchOffXray -> switchOffXray,
                sendMoveTable | receiveMoveTable -> moveTable,
                sendMoveArm | receiveMoveArm -> moveArm,
