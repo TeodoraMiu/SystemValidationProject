@@ -1,0 +1,82 @@
+sort Button = struct start | stop | emergency;
+sort Pedal = struct pedal1 | pedal2;
+sort Arm = struct arm1 | arm2;
+sort JoystickDirection = struct upJ | downJ | leftJ | rightJ;
+sort TableDirection = struct upT | downT | forwardsT | backwardsT;
+sort ArmDirection = struct forwardsA | backwardsA; % how else can the arm move?
+sort ArmRotation = struct clockwise | counterclockwise | transversalforwards | transversalbackwards;
+
+map translate: Pedal -> Arm;
+eqn translate(pedal1) = arm1;
+	translate(pedal2) = arm2;
+
+act
+	%external actions%
+	pressButton: Button;
+	releaseButton: Button;
+    pressPedal: Pedal;
+    releasePedal: Pedal;
+    weightSensorOn;
+    weightSensorOff;
+    moveTableJoystick: JoystickDirection;
+    moveTable: TableDirection;
+    switchOnXray: Arm;
+    switchOffXray: Arm;
+    moveArmJoystick: Arm # JoystickDirection;
+    moveArm: Arm # ArmDirection;
+    rotateArm: Arm # ArmRotation;         
+ 
+    sendSwitchOnXray: Arm;
+    receiveSwitchOnXray: Arm;
+    sendSwitchOffXray: Arm;
+    receiveSwitchOffXray: Arm;
+    sendMoveTable: TableDirection;
+    receiveMoveTable: TableDirection;
+    sendMoveArm: Arm # ArmDirection;
+    receiveMoveArm: Arm # ArmDirection;
+    sendRotateArm: Arm # ArmRotation;
+    receiveRotateArm: Arm # ArmRotation;
+        
+proc
+	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) = 
+		pressButton(start) . (patientOnTable && !emergencyMode) -> IOControl(true, emergencyMode, patientOnTable) <> IOControl()
+		+ pressButton(stop) . IOControl(false, emergencyMode, patientOnTable) 
+		+ pressButton(emergency) . IOControl(false, true, patientOnTable)
+		+ (emergencyMode) -> releaseButton(emergency) . IOControl(operationOngoing, false, patientOnTable) 
+		+ weightSensorOn . IOControl(operationOngoing, emergencyMode, true)
+		+ weightSensorOff . IOControl(operationOngoing, emergencyMode, false)
+		+ sum pedal: Pedal. pressPedal(pedal) . (!emergencyMode && operationOngoing && patientOnTable) -> sendSwitchOnXray(translate(pedal)) . IOControl() <> IOControl()
+		+ sum pedal: Pedal. releasePedal(pedal) -> sendSwitchOffXray(translate(pedal)) . IOControl() <> IOControl();
+	Movement = receiveMoveTable(upT) | receiveMoveArm(arm1, forwardsA) | receiveRotateArm(arm1, clockwise) | Movement;
+	XRayControl = 
+		
+		;
+
+init
+	allow(
+		{ 
+            pressButton, 
+            releaseButton,
+            pressPedal,
+            releasePedal,
+            weightSensorOn,
+            weightSensorOff,
+            moveTableJoystick,
+            moveTable,
+            switchOnXray,
+            switchOffXray,
+            moveArmJoystick,
+            moveArm,
+            rotateArm
+        },
+		comm(
+			{ 
+               sendSwitchOnXray | receiveSwitchOnXray -> switchOnXray,
+               sendSwitchOffXray | receiveSwitchOffXray -> switchOffXray,
+               sendMoveTable | receiveMoveTable -> moveTable,
+               sendMoveArm | receiveMoveArm -> moveArm,
+               sendRotateArm | receiveRotateArm -> rotateArm
+            },
+		Movement || IOControl(false, false, false) || XRayControl
+		)
+	);
