@@ -40,14 +40,23 @@ act
     weightSensorOn;
     weightSensorOff;
     moveTableJoystick: JoystickDirection;
+	releaseTableMoveJoystick;
     moveTable: TableDirection;
+	stopMoveTable;
     switchOnXray: Arm;
     switchOffXray: Arm;
     moveArmJoystick: Arm # JoystickDirection;
+	releaseArmMoveJoystick: Arm;
     moveArm: Arm # ArmDirection;
+	stopMoveArm: Arm;
 	rotateArmJoystick: Arm # JoystickDirection;
-    rotateArm: Arm # ArmRotation;  
-	displayXRayImage;       
+	releaseArmRotateJoystick: Arm;
+    rotateArm: Arm # ArmRotation; 
+	stopRotateArm: Arm;
+	atBoundaryPositionTable;
+	atBoundaryPositionArm: Arm;
+	atBoundaryRotationArm: Arm;
+	displayXRayImage;
  
 	% internal actions
 	% IO <-> XRay
@@ -70,7 +79,15 @@ act
     sendRotateArm: Arm # ArmRotation;
     receiveRotateArm: Arm # ArmRotation;
 	rotateArmInternal: Arm # ArmRotation;
-	displayImage;
+	sendStopTableMove;
+	receiveStopTableMove;
+	stopTableMoveInternal;
+	sendStopArmMove: Arm;
+	receiveStopArmMove: Arm;
+	stopArmMoveInternal: Arm;
+	sendStopArmRotate: Arm;
+	receiveStopArmRotate: Arm;
+	stopArmRotateInternal: Arm;
         
 proc
 	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) = 
@@ -103,22 +120,23 @@ proc
 					(!emergencyMode) -> sendRotateArm(arm, translateJoystickToArmRotation(direction)) . IOControl()
 					<> IOControl())
 		+ sum arm: Arm. 
-			receiveXRayImage(arm) . displayXRayImage . IOControl();
+			receiveXRayImage(arm) . displayXRayImage . IOControl()
+		+ releaseTableMoveJoystick . sendStopTableMove . IOControl()
+		+ sum arm: Arm. 
+			releaseArmMoveJoystick(arm) . sendStopArmMove(arm) . IOControl()
+		+ sum arm: Arm. 
+			releaseArmRotateJoystick(arm) . sendStopArmRotate(arm) . IOControl();
 
 	Movement =
-		%tablePositionX,
-		%tablePositionY,
-		%arm1PositionX,
-		%arm1PositionY,
-		%arm2PositionX,
-		%arm2PositionY,
-		%arm1RotationX,
-		%arm1RotationY,
-		%arm2RotationX,
-		%arm2RotationY: Int
 		  sum direction: TableDirection. receiveMoveTable(direction) . moveTable(direction) . Movement
-		+ sum arm: Arm. (sum direction: ArmDirection. receiveMoveArm(arm, direction). moveArm(arm, direction). Movement)
-		+ sum arm: Arm. (sum direction: ArmRotation.  receiveRotateArm(arm, direction)   . rotateArm(arm, direction)   . Movement);
+		+ sum arm: Arm. (sum direction: ArmDirection. receiveMoveArm(arm, direction) . moveArm(arm, direction). Movement)
+		+ sum arm: Arm. (sum direction: ArmRotation. receiveRotateArm(arm, direction) . rotateArm(arm, direction) . Movement)
+		+ receiveStopTableMove . stopMoveTable . Movement
+		+ sum arm: Arm. receiveStopArmMove(arm) . stopMoveArm(arm) . Movement
+		+ sum arm: Arm. receiveStopArmRotate(arm) . stopRotateArm(arm) . Movement
+		+ atBoundaryPositionTable . stopMoveTable . Movement
+		+ sum arm: Arm. atBoundaryPositionArm(arm) . stopMoveArm(arm) . Movement
+		+ sum arm: Arm. atBoundaryRotationArm(arm) . stopRotateArm(arm) . Movement;
 
 	XRayControl(
 		XRayOnArm1,
@@ -141,6 +159,9 @@ init
 			moveArmInternal,
 			rotateArmInternal,
 			transmitXRayImageInternal,
+			stopTableMoveInternal,
+			stopArmMoveInternal,
+			stopArmRotateInternal,
 			% external actions
             pressButton, 
             releaseButton,
@@ -149,13 +170,23 @@ init
             weightSensorOn,
             weightSensorOff,
             moveTableJoystick,
+			releaseTableMoveJoystick,
             moveTable,
+			stopMoveTable,
             switchOnXray,
             switchOffXray,
             moveArmJoystick,
+			releaseArmMoveJoystick,
             moveArm,
+			stopMoveArm,
+			rotateArmJoystick,
+			releaseArmRotateJoystick,
             rotateArm,
-			displayXRayImage
+			stopRotateArm,
+			displayXRayImage,
+			atBoundaryPositionTable,
+			atBoundaryPositionArm,
+			atBoundaryRotationArm
         },
 		comm(
 			{ 
@@ -164,7 +195,10 @@ init
                sendMoveTable | receiveMoveTable -> moveTableInternal,
                sendMoveArm | receiveMoveArm -> moveArmInternal,
                sendRotateArm | receiveRotateArm -> rotateArmInternal,
-			   sendXRayImage | receiveXRayImage -> transmitXRayImageInternal
+			   sendXRayImage | receiveXRayImage -> transmitXRayImageInternal,
+			   sendStopTableMove | receiveStopTableMove -> stopTableMoveInternal,
+			   sendStopArmMove | receiveStopArmMove -> stopArmMoveInternal,
+			   sendStopArmRotate | receiveStopArmRotate -> stopArmRotateInternal
             },
 		Movement || IOControl(false, false, false) || XRayControl(false, false)
 		)
