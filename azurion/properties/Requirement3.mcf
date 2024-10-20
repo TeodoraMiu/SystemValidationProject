@@ -1,0 +1,1 @@
+[true.weightSensorOff]mu X. (forall a:Arm. [switchOffXray(a)] X && <true>true)
