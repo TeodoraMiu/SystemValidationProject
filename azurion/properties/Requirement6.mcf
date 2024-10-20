@@ -1,0 +1,1 @@
+exists dirJ:JoystickDirection.[true*.moveTableJoystick(dirJ)]mu X. ([!moveTable(translateJoystickToTableMovement(dirJ))]X && <true>true)

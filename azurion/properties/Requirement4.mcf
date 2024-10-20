@@ -1,0 +1,1 @@
+nu X(operationOngoing: Bool = false).(val(operationOngoing) => forall dirT:TableDirection.[true*.moveTable(dirT)]false)

@@ -1,0 +1,3 @@
+% Exist pedal should be there?
+% How can we limit the second true* which means some actions happening after pressPedal
+exists p:Pedal.[true*.pressPedal(p).true*.!pressPedal(p)*.releasePedal(p)]mu X. [!switchOffXray(translatePedaltoArm(p))] X && <true>true

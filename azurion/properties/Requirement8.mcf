@@ -1,0 +1,1 @@
+nu X(emergencyMode: Bool = false).(val(emergencyMode)=> exists dirT:TableDirection.[true*.moveTable(dirT)]false && exists a:Arm.exists dirA:ArmDirection.[true*.moveArm(a, dirA)]false && exists a:Arm.exists rotA:ArmRotation.[true*.rotateArm(a, rotA)]false)
