@@ -139,13 +139,13 @@ proc
 		+ sum arm: Arm. atBoundaryRotationArm(arm) . stopRotateArm(arm) . Movement;
 
 	XRayControl(
-		XRayOnArm1,
+		XRayOnArm1: Bool,
 		XRayOnArm2: Bool
 		) =
-		  receiveSwitchOnXray(arm1) . (!XRayOnArm1) -> switchOnXray(arm1) . XRayControl(true, XRayOnArm2) <> XRayControl()
-		+ receiveSwitchOnXray(arm2) . (!XRayOnArm2) -> switchOnXray(arm2) . XRayControl(XRayOnArm1, true) <> XRayControl()
-		+ receiveSwitchOffXray(arm1) . (XRayOnArm1) -> switchOffXray(arm1) . XRayControl(false, XRayOnArm2) <> XRayControl()
-		+ receiveSwitchOffXray(arm2) . (XRayOnArm2) -> switchOffXray(arm2) . XRayControl(XRayOnArm1, false) <> XRayControl()
+		  receiveSwitchOnXray(arm1) . switchOnXray(arm1) . XRayControl(true, XRayOnArm2)  
+		+ receiveSwitchOnXray(arm2) .  switchOnXray(arm2) . XRayControl(XRayOnArm1, true) 
+		+ receiveSwitchOffXray(arm1) . switchOffXray(arm1) . XRayControl(false, XRayOnArm2)
+		+ receiveSwitchOffXray(arm2) . switchOffXray(arm2) . XRayControl(XRayOnArm1, false)
 		+ (XRayOnArm1) -> sendXRayImage(arm1) . XRayControl()
 		+ (XRayOnArm2) -> sendXRayImage(arm2) . XRayControl();
 

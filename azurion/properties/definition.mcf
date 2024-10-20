@@ -1,5 +1,5 @@
 nu X(
-	patientOnTable: Bool = false,
+	patientOnTable: Bool = true,
 	operationOngoing: Bool = false,
 	emergencyMode: Bool = false) .
 [pressButton(start)] X(patientOnTable, true, emergencyMode)
@@ -9,4 +9,4 @@ nu X(
 && [weightSensorOn] X(true, operationOngoing, emergencyMode)
 && [weightSensorOff] X(false, operationOngoing, emergencyMode)
 %NOTE(tugberk): We should discuss this and check my definition on document
-&& nu X(operationOngoing : Bool = false).(val(!emergencyMode && patientOnTable) => [pressButton(start)]X(true)) && [pressButton(stop)]X(false) && [pressButton(emergency)]X(false)
+&& (val(!emergencyMode && patientOnTable) => [pressButton(start)]X(patientOnTable, true, emergencyMode)) && [pressButton(stop)]X(patientOnTable, false, emergencyMode) && [pressButton(emergency)]X(patientOnTable, false, true)

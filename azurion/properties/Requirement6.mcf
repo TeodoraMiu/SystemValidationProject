@@ -1,1 +1,4 @@
-exists dirJ:JoystickDirection.[true*.moveTableJoystick(dirJ)]mu X. ([!moveTable(translateJoystickToTableMovement(dirJ))]X && <true>true)
+nu X(
+	operationOngoing: Bool = false,
+	emergencyMode: Bool = false).
+(val(!operationOngoing && !emergencyMode) => exists dirJ:JoystickDirection.[true*.moveTableJoystick(dirJ)]mu Y. ([!moveTable(translateJoystickToTableMovement(dirJ))]Y && <true>true))
