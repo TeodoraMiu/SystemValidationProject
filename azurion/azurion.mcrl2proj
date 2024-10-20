@@ -2,6 +2,16 @@
  <spec>azurion_spec.mcrl2</spec>
  <properties>
   <property>definition</property>
+  <property>Requirement1</property>
+  <property>Requirement3</property>
+  <property>Requirement4</property>
+  <property>Requiretment2</property>
+  <property>Requirement5</property>
+  <property>Requirement6</property>
+  <property>Requirement7</property>
+  <property>Requirement7_2</property>
+  <property>Requirement8</property>
+  <property>Requirement9</property>
  </properties>
  <jittyc>false</jittyc>
  <linearisation_method>regular</linearisation_method>
