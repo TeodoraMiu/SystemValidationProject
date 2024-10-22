@@ -1,4 +1,4 @@
 % Exist pedal should be there?
 % How can we limit the second true* which means some actions happening after pressPedal
-forall p:Pedal.[true*. releasePedal(p)]mu X.( [!switchOffXray(translatePedaltoArm(p)X && <true>true)])
+forall p:Pedal.[true*. releasePedal(p)]mu X.( [!switchOffXray(translatePedaltoArm(p))]X && <true>true)
 %exists p:Pedal.[true*.pressPedal(p)]mu X.( [!switchOffXray(translatePedaltoArm(p))] X && <true>true)
