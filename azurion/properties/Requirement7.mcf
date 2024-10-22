@@ -1,0 +1,3 @@
+exists a:Arm.exists dirJ:JoystickDirection.[true*.moveArmJoystick(a, dirJ)]mu X. ([!moveArm(a, translateJoystickToArmMovement(dirJ))]X && <true>true)
+%or this? Move the arm until release joystick?
+%exists a:Arm.exists dirJ:JoystickDirection.[true*.moveArmJoystick(a, dirJ).!releaseArmMoveJoystick(a)*]mu X. ([!moveArm(a, translateJoystickToArmMovement(dirJ))]X && <true>true)
