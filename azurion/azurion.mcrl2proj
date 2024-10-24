@@ -14,5 +14,5 @@
   <property>Requirement9</property>
  </properties>
  <jittyc>false</jittyc>
- <linearisation_method>regular</linearisation_method>
+ <linearisation_method>regular2</linearisation_method>
 </root>
