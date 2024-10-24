@@ -109,12 +109,11 @@ proc
 		+ (emergencyMode) 
 			-> releaseButton(emergency) 
 				. IOControl(emergencyMode = false) <> delta
-		+ (!patientOnTable && (XRayOnArm1 || XRayOnArm2)) 
-			-> weightSensorOn . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
-				. IOControl(patientOnTable = true, XRayOnArm1 = false, XRayOnArm2 = false) <> delta
 		+ (patientOnTable)
 			-> weightSensorOff 
-				. IOControl(operationOngoing = false, patientOnTable = false) <> delta
+				. IOControl(operationOngoing = false, patientOnTable = false) 
+					<> weightSensorOn . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
+				. IOControl(patientOnTable = true, XRayOnArm1 = false, XRayOnArm2 = false)
 		+ (!patientOnTable && (XRayOnArm1 || XRayOnArm2)) 
 			-> sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
 				. IOControl(XRayOnArm1 = false, XRayOnArm2 = false) <> delta
