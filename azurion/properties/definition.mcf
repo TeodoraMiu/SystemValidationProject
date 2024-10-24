@@ -1,5 +1,5 @@
 nu X(
-	patientOnTable: Bool = true,
+	patientOnTable: Bool = false,
 	operationOngoing: Bool = false,
 	emergencyMode: Bool = false) .
 [pressButton(start)] X(patientOnTable, true, emergencyMode)
