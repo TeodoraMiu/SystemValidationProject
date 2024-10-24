@@ -91,10 +91,7 @@ act
         
 proc
 	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool, TableMoveStopped: Bool, Arm1MoveStopped: Bool, Arm2MoveStopped: Bool, Arm1RotateStopped: Bool, Arm2RotateStopped: Bool, XRayOnArm1: Bool, XRayOnArm2: Bool) = 
-		 (!operationOngoing && patientOnTable && !emergencyMode) 
-		 	-> pressButton(start) 
-				. IOControl(operationOngoing = true) <> delta
-		+ (operationOngoing) 
+		(operationOngoing) 
 			-> pressButton(stop) . (XRayOnArm1 -> sendSwitchOffXray(arm1)) . (XRayOnArm2 -> sendSwitchOffXray(arm2))
 				. IOControl(operationOngoing = false) <> (patientOnTable && !emergencyMode) 
 		 	-> pressButton(start) . IOControl(operationOngoing = true)
