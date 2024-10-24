@@ -95,20 +95,12 @@ proc
 		 	-> pressButton(start) 
 				. IOControl(operationOngoing = true) <> delta
 		+ (operationOngoing) 
-			-> pressButton(stop) 
-				. IOControl(operationOngoing = false) <> delta
-		+ (!operationOngoing && (XRayOnArm1 || XRayOnArm2)) 
-			-> sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
-				. IOControl(XRayOnArm1 = false, XRayOnArm2 = false) <> delta
-		+ (!emergencyMode) 
-			-> pressButton(emergency) 
-				. IOControl(operationOngoing = false, emergencyMode = true) <> delta
-		+ (emergencyMode && (XRayOnArm1 || XRayOnArm2)) 
-			-> sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
-				. IOControl(XRayOnArm1 = false, XRayOnArm2 = false) <> delta
+			-> pressButton(stop) . (XRayOnArm1 -> sendSwitchOffXray(arm1)) . (XRayOnArm2 -> sendSwitchOffXray(arm2))
+				. IOControl(operationOngoing = false) <> (patientOnTable && !emergencyMode) 
+		 	-> pressButton(start) . IOControl(operationOngoing = true)
 		+ (emergencyMode) 
-			-> releaseButton(emergency) 
-				. IOControl(emergencyMode = false) <> delta
+			-> releaseButton(emergency). IOControl(emergencyMode = false) <> pressButton(emergency).(XRayOnArm1 -> sendSwitchOffXray(arm1)).(XRayOnArm2 -> sendSwitchOffXray(arm2))
+				. IOControl(operationOngoing = false, emergencyMode = true)
 		+ (patientOnTable)
 			-> weightSensorOff 
 				. IOControl(operationOngoing = false, patientOnTable = false) 
