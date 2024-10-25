@@ -1,1 +1,6 @@
-[true* . weightSensorOff]mu X. (forall a:Arm. [!switchOffXray(a)] X && <true>true)
+nu X(
+    XrayOnArm1: Bool = false, XrayOnArm2: Bool = false).
+[switchOnXray(arm1)]X (true, XrayOnArm2)
+&& ([switchOnXray(arm2)]X (XrayOnArm1, true))
+&& (val(XrayOnArm1)=> ([true* . weightSensorOff]mu Y. ([!switchOffXray(arm1)] Y && <true>true)))
+&& (val(XrayOnArm2)=> ([true* . weightSensorOff]mu Z. ([!switchOffXray(arm2)] Z && <true>true)))

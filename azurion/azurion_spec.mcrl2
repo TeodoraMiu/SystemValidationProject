@@ -92,20 +92,17 @@ act
 proc
 	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool, TableMoveStopped: Bool, Arm1MoveStopped: Bool, Arm2MoveStopped: Bool, Arm1RotateStopped: Bool, Arm2RotateStopped: Bool, XRayOnArm1: Bool, XRayOnArm2: Bool) = 
 		(operationOngoing) 
-			-> pressButton(stop) . (XRayOnArm1 -> sendSwitchOffXray(arm1)) . (XRayOnArm2 -> sendSwitchOffXray(arm2))
-				. IOControl(operationOngoing = false) <> (patientOnTable && !emergencyMode) 
-		 	-> pressButton(start) . IOControl(operationOngoing = true)
+			-> pressButton(stop) . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
+				. IOControl(operationOngoing = false, XRayOnArm1 = false, XRayOnArm2 = false) 
+			<> (patientOnTable && !emergencyMode) -> pressButton(start) . IOControl(operationOngoing = true)
 		+ (emergencyMode) 
-			-> releaseButton(emergency). IOControl(emergencyMode = false) <> pressButton(emergency).(XRayOnArm1 -> sendSwitchOffXray(arm1)).(XRayOnArm2 -> sendSwitchOffXray(arm2))
-				. IOControl(operationOngoing = false, emergencyMode = true)
+			-> releaseButton(emergency) . IOControl(emergencyMode = false) 
+			<> pressButton(emergency) . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2)
+				. IOControl(operationOngoing = false, emergencyMode = true, XRayOnArm1 = false, XRayOnArm2 = false)
 		+ (patientOnTable)
-			-> weightSensorOff 
-				. IOControl(operationOngoing = false, patientOnTable = false) 
-					<> weightSensorOn . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
-				. IOControl(patientOnTable = true, XRayOnArm1 = false, XRayOnArm2 = false)
-		+ (!patientOnTable && (XRayOnArm1 || XRayOnArm2)) 
-			-> sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
-				. IOControl(XRayOnArm1 = false, XRayOnArm2 = false) <> delta
+			-> weightSensorOff . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2)
+				. IOControl(operationOngoing = false, patientOnTable = false, XRayOnArm1 = false, XRayOnArm2 = false) 
+			<> weightSensorOn . IOControl(patientOnTable = true)
 		+ sum pedal: Pedal . (!emergencyMode && operationOngoing && patientOnTable && if(translatePedaltoArm(pedal) == arm1, !XRayOnArm1, !XRayOnArm2)) 
 			-> pressPedal(pedal) . sendSwitchOnXray(translatePedaltoArm(pedal)) 
 				. IOControl(XRayOnArm1 = if(translatePedaltoArm(pedal) == arm1, true, XRayOnArm1), XRayOnArm2 = if(translatePedaltoArm(pedal) == arm2, true, XRayOnArm2)) <> delta
@@ -162,25 +159,19 @@ proc
 			-> atBoundaryRotationArm(arm) . stopRotateArm(arm) 
 				. Movement(Arm1RotateStopped = if((arm == arm1), true, Arm1RotateStopped), Arm2RotateStopped = if((arm == arm2),true, Arm2RotateStopped)) <> delta;
 
-	XRayControl( XRayOnArm1: Bool, XRayOnArm2: Bool) =
-		  (!XRayOnArm1) 
-		  	-> receiveSwitchOnXray(arm1) . switchOnXray(arm1) 
-				. XRayControl(true, XRayOnArm2) <> delta
-		+ (!XRayOnArm2) 
-			-> receiveSwitchOnXray(arm2) . switchOnXray(arm2) 
-				. XRayControl(XRayOnArm1, true) <> delta
-		+ (XRayOnArm1) 
-			-> receiveSwitchOffXray(arm1) . switchOffXray(arm1) 
-				. XRayControl(false, XRayOnArm2) <> delta
+	XRayControl( XRayOnArm1: Bool, XRayOnArm2: Bool, ImageArm1Display: Bool, ImageArm2Display: Bool) =
+		(XRayOnArm1) 
+			-> (receiveSwitchOffXray(arm1) . switchOffXray(arm1) . XRayControl(XRayOnArm1 = false, ImageArm1Display = false) 
+				+ receiveSwitchOnXray(arm1) . delta)
+				%+ ((!ImageArm1Display) -> sendXRayImage(arm1) . XRayControl(ImageArm1Display = true) <> delta))
+			<> (receiveSwitchOnXray(arm1) . switchOnXray(arm1) . ((!ImageArm1Display) -> sendXRayImage(arm1)) . XRayControl(XRayOnArm1 = true, ImageArm1Display = true) 
+				+ receiveSwitchOffXray(arm1) . delta)
 		+ (XRayOnArm2) 
-			-> receiveSwitchOffXray(arm2) . switchOffXray(arm2) 
-				. XRayControl(XRayOnArm1, false) <> delta
-		+ (XRayOnArm1) 
-			-> sendXRayImage(arm1) 
-				. XRayControl() <> delta
-		+ (XRayOnArm2) 
-			-> sendXRayImage(arm2) 
-				. XRayControl() <> delta;
+			-> (receiveSwitchOffXray(arm2) . switchOffXray(arm2) . XRayControl(XRayOnArm2 = false, ImageArm2Display = false) 
+				+ receiveSwitchOnXray(arm2) . delta)
+				%+ ((!ImageArm2Display) -> sendXRayImage(arm2) . XRayControl(ImageArm2Display = true) <> delta))
+			<> (receiveSwitchOnXray(arm2) . switchOnXray(arm2) . ((!ImageArm2Display) -> sendXRayImage(arm2)) . XRayControl(XRayOnArm2 = true, ImageArm2Display = true)
+				+ receiveSwitchOffXray(arm2) . delta);
 
 init
 	allow(
@@ -233,6 +224,6 @@ init
 			   sendStopArmMove | receiveStopArmMove -> stopArmMoveInternal,
 			   sendStopArmRotate | receiveStopArmRotate -> stopArmRotateInternal
             },
-		Movement(true, true, true, true, true) || IOControl(false, false, false, true, true, true, true, true, false, false) || XRayControl(false, false)
+		Movement(true, true, true, true, true) || IOControl(false, false, false, true, true, true, true, true, false, false) || XRayControl(false, false, false, false)
 		)
 	);
