@@ -109,9 +109,12 @@ proc
 		+ sum pedal: Pedal . (!emergencyMode && operationOngoing && patientOnTable && if(translatePedaltoArm(pedal) == arm1, XRayOnArm1, XRayOnArm2))
 			-> releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) 
 				. IOControl(XRayOnArm1 = if(translatePedaltoArm(pedal) == arm1, false, XRayOnArm1), XRayOnArm2 = if(translatePedaltoArm(pedal) == arm2, false, XRayOnArm2)) <> delta
-		+ sum direction: JoystickDirection . (!operationOngoing && !emergencyMode && TableMoveStopped)
-			-> moveTableJoystick(direction) . sendMoveTable(translateJoystickToTableMovement(direction)) 
-				. IOControl(TableMoveStopped = false) <> delta
+		+  (TableMoveStopped) -> ((!operationOngoing && !emergencyMode)
+			-> sum direction: JoystickDirection . moveTableJoystick(direction) 
+				. sendMoveTable(translateJoystickToTableMovement(direction))
+				. IOControl(TableMoveStopped = false))
+			<> ((!operationOngoing && !emergencyMode) 
+				-> releaseTableMoveJoystick . sendStopTableMove . IOControl(TableMoveStopped = true) <> sendStopTableMove . IOControl(TableMoveStopped = true))
 		+ sum arm: Arm . sum direction: JoystickDirection . (operationOngoing && !emergencyMode && patientOnTable && if((arm == arm1), Arm1MoveStopped, Arm2MoveStopped)) 
 			-> moveArmJoystick(arm, direction) . sendMoveArm(arm, translateJoystickToArmMovement(direction)) 
 				. IOControl(Arm1MoveStopped = if((arm == arm1), false, Arm1MoveStopped), Arm2MoveStopped = if((arm == arm2), false, Arm2MoveStopped))  <> delta
@@ -120,9 +123,6 @@ proc
 				. IOControl(Arm1RotateStopped = if((arm == arm1), false, Arm1RotateStopped), Arm2RotateStopped = if((arm == arm2), false, Arm2RotateStopped)) <> delta
 		+ sum arm: Arm . receiveXRayImage(arm) . displayXRayImage 
 				. IOControl() % conditions here as well?
-		+ (!operationOngoing && !emergencyMode && patientOnTable && !TableMoveStopped) 
-			-> releaseTableMoveJoystick . sendStopTableMove 
-				. IOControl(TableMoveStopped = true) <> delta
 		+ sum arm: Arm . (operationOngoing && !emergencyMode && patientOnTable && if((arm == arm1), !Arm1MoveStopped, !Arm2MoveStopped))
 			-> releaseArmMoveJoystick(arm) . sendStopArmMove(arm) 
 				. IOControl(Arm1MoveStopped = if((arm == arm1), true, Arm1MoveStopped), Arm2MoveStopped = if((arm == arm2), true, Arm2MoveStopped)) <> delta
