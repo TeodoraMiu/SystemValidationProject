@@ -1,13 +1,8 @@
 nu X(
 	patientOnTable: Bool = false,
-	operationOngoing: Bool = false,
-	emergencyMode: Bool = false) .
-[pressButton(start)] X(patientOnTable, true, emergencyMode)
-&& [pressButton(stop)] X(patientOnTable, false, emergencyMode)
-&& [pressButton(emergency)] X(patientOnTable, false, true)
-&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false)
-&& [weightSensorOn] X(true, operationOngoing, emergencyMode)
-&& [weightSensorOff] X(false, operationOngoing, emergencyMode)
-%NOTE(tugberk): We should discuss this and check my definition on document
-&& (val(!emergencyMode && patientOnTable) => [pressButton(start)]X(patientOnTable, true, emergencyMode)) && [pressButton(stop)]X(patientOnTable, false, emergencyMode) && [pressButton(emergency)]X(patientOnTable, false, true)
-&& (val(!operationOngoing) => forall dirJ:JoystickDirection .[true* . moveTableJoystick(dirJ)]mu Y. ([!moveTable(translateJoystickToTableMovement(dirJ))] Y && <true>true))
+	TableMoveStopped: Bool = true) .
+[weightSensorOn] X(true, TableMoveStopped)
+&& [weightSensorOff] X(false, TableMoveStopped)
+&& forall dirT: TableDirection. [moveTable(dirT)] X(patientOnTable, false)
+&& [stopMoveTable] X(patientOnTable, true)
+&& (val(!TableMoveStopped) => [true* .weightSensorOn]mu Y. ([!stopMoveTable] Y && <true>true))
