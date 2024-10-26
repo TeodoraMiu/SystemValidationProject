@@ -1,0 +1,1 @@
+forall arm: Arm. [true* . switchOnXray(arm) . !switchOffXray(arm)*] mu X.[!displayXRayImage]X && <true>true
