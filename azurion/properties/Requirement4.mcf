@@ -2,14 +2,17 @@ nu X(
 	patientOnTable: Bool = false,
 	operationOngoing: Bool = false,
 	emergencyMode: Bool = false,
-	stopMoveTable: Bool = true) . 
-[pressButton(stop)] X(patientOnTable, false, emergencyMode, stopMoveTable)
-&& [pressButton(emergency)] X(patientOnTable, false, true, stopMoveTable)
-&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false, stopMoveTable)
-&& [weightSensorOn] X(true, operationOngoing, emergencyMode, stopMoveTable)
-&& [weightSensorOff] X(false, operationOngoing, emergencyMode, stopMoveTable)
+	TableMoveStopped: Bool = true) . 
+[pressButton(stop)] X(patientOnTable, false, emergencyMode, TableMoveStopped)
+&& [pressButton(emergency)] X(patientOnTable, false, true, TableMoveStopped)
+&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false, TableMoveStopped)
+&& [weightSensorOn] X(true, operationOngoing, emergencyMode, TableMoveStopped)
+&& [weightSensorOff] X(false, operationOngoing, emergencyMode, TableMoveStopped)
 && (val(!emergencyMode && patientOnTable) 
-	=> [pressButton(start)]X(patientOnTable, true, emergencyMode, stopMoveTable))
+	=> [pressButton(start)]X(patientOnTable, true, emergencyMode, TableMoveStopped))
 && forall dirT: TableDirection. [moveTable(dirT)] X(patientOnTable, operationOngoing, emergencyMode, false)
 && [stopMoveTable] X(patientOnTable, operationOngoing, emergencyMode, true)
-&& (val(operationOngoing) => forall dirT: TableDirection.[true.moveTable(dirT)]false)
+&& (val(operationOngoing || emergencyMode) => forall dirT:TableDirection. [true*.moveTable(dirT)]false)
+
+%&& (val(operationOngoing ) => forall dirJ: JoystickDirection.[true*.moveTable(dirT)]false)
+%&& (val(emergencyMode) => forall dirJ: JoystickDirection.[true*.moveTable(dirT)]false)
