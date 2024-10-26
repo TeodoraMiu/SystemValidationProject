@@ -59,6 +59,10 @@ act
 	displayXRayImage;
  
 	% internal actions
+	% IO <-> XRay, Movement
+	sendStatus: Bool # Bool # Bool;
+	receiveStatus: Bool # Bool # Bool;
+	updateStatusInternal: Bool # Bool # Bool;
 	% IO <-> XRay
     sendSwitchOnXray: Arm;
     receiveSwitchOnXray: Arm;
@@ -90,54 +94,53 @@ act
 	stopArmRotateInternal: Arm;
         
 proc
-	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool, TableMoveStopped: Bool, Arm1MoveStopped: Bool, Arm2MoveStopped: Bool, Arm1RotateStopped: Bool, Arm2RotateStopped: Bool, XRayOnArm1: Bool, XRayOnArm2: Bool) = 
+	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) = 
 		(operationOngoing) 
 			-> pressButton(stop) . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2) 
-				. IOControl(operationOngoing = false, XRayOnArm1 = false, XRayOnArm2 = false) 
-			<> (patientOnTable && !emergencyMode) -> pressButton(start) . IOControl(operationOngoing = true)
+				. sendStatus(operationOngoing, emergencyMode, patientOnTable) . IOControl(operationOngoing = false) 
+			<> (patientOnTable && !emergencyMode) -> pressButton(start) 
+				. sendStatus(operationOngoing, emergencyMode, patientOnTable) . IOControl(operationOngoing = true) 
 		+ (emergencyMode) 
-			-> releaseButton(emergency) . IOControl(emergencyMode = false) 
+			-> releaseButton(emergency)  . sendStatus(operationOngoing, emergencyMode, patientOnTable) . IOControl(emergencyMode = false)
 			<> pressButton(emergency) . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2)
-				. IOControl(operationOngoing = false, emergencyMode = true, XRayOnArm1 = false, XRayOnArm2 = false)
+				. sendStatus(operationOngoing, emergencyMode, patientOnTable) . IOControl(operationOngoing = false, emergencyMode = true)
 		+ (patientOnTable)
 			-> weightSensorOff . sendSwitchOffXray(arm1) . sendSwitchOffXray(arm2)
-				. IOControl(operationOngoing = false, patientOnTable = false, XRayOnArm1 = false, XRayOnArm2 = false) 
-			<> weightSensorOn . IOControl(patientOnTable = true)
-		+ sum pedal: Pedal . (!emergencyMode && operationOngoing && patientOnTable && if(translatePedaltoArm(pedal) == arm1, !XRayOnArm1, !XRayOnArm2)) 
-			-> pressPedal(pedal) . sendSwitchOnXray(translatePedaltoArm(pedal)) 
-				. IOControl(XRayOnArm1 = if(translatePedaltoArm(pedal) == arm1, true, XRayOnArm1), XRayOnArm2 = if(translatePedaltoArm(pedal) == arm2, true, XRayOnArm2)) <> delta
-		+ sum pedal: Pedal . (!emergencyMode && operationOngoing && patientOnTable && if(translatePedaltoArm(pedal) == arm1, XRayOnArm1, XRayOnArm2))
-			-> releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) 
-				. IOControl(XRayOnArm1 = if(translatePedaltoArm(pedal) == arm1, false, XRayOnArm1), XRayOnArm2 = if(translatePedaltoArm(pedal) == arm2, false, XRayOnArm2)) <> delta
-		+  (TableMoveStopped) -> ((!operationOngoing && !emergencyMode)
+				. sendStatus(operationOngoing, emergencyMode, patientOnTable) . IOControl(operationOngoing = false, patientOnTable = false) 
+			<> weightSensorOn . sendStatus(operationOngoing, emergencyMode, patientOnTable) . IOControl(patientOnTable = true)
+		+ sum pedal: Pedal . ((!emergencyMode && operationOngoing && patientOnTable) 
+			-> ( pressPedal(pedal) . sendSwitchOnXray(translatePedaltoArm(pedal)) . IOControl()) 
+			<> (sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl()))
+		+ sum pedal: Pedal . releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl()
+		+ ((!operationOngoing && !emergencyMode)
 			-> sum direction: JoystickDirection . moveTableJoystick(direction) 
 				. sendMoveTable(translateJoystickToTableMovement(direction))
-				. IOControl(TableMoveStopped = false))
-			<> ((!operationOngoing && !emergencyMode) 
-				-> releaseTableMoveJoystick . sendStopTableMove . IOControl(TableMoveStopped = true) <> sendStopTableMove . IOControl(TableMoveStopped = true))
-		+ sum arm: Arm . sum direction: JoystickDirection . (operationOngoing && !emergencyMode && patientOnTable && if((arm == arm1), Arm1MoveStopped, Arm2MoveStopped)) 
-			-> moveArmJoystick(arm, direction) . sendMoveArm(arm, translateJoystickToArmMovement(direction)) 
-				. IOControl(Arm1MoveStopped = if((arm == arm1), false, Arm1MoveStopped), Arm2MoveStopped = if((arm == arm2), false, Arm2MoveStopped))  <> delta
-		+ sum arm: Arm . sum direction: JoystickDirection. (operationOngoing && !emergencyMode && patientOnTable && if((arm == arm1), Arm1RotateStopped, Arm2RotateStopped)) 
-			-> rotateArmJoystick(arm, direction) . sendRotateArm(arm, translateJoystickToArmRotation(direction)) 
-				. IOControl(Arm1RotateStopped = if((arm == arm1), false, Arm1RotateStopped), Arm2RotateStopped = if((arm == arm2), false, Arm2RotateStopped)) <> delta
-		+ sum arm: Arm . receiveXRayImage(arm) . displayXRayImage 
-				. IOControl() % conditions here as well?
-		+ sum arm: Arm . (operationOngoing && !emergencyMode && patientOnTable && if((arm == arm1), !Arm1MoveStopped, !Arm2MoveStopped))
-			-> releaseArmMoveJoystick(arm) . sendStopArmMove(arm) 
-				. IOControl(Arm1MoveStopped = if((arm == arm1), true, Arm1MoveStopped), Arm2MoveStopped = if((arm == arm2), true, Arm2MoveStopped)) <> delta
-		+ sum arm: Arm . (operationOngoing && !emergencyMode && patientOnTable && if((arm == arm1), !Arm1RotateStopped, !Arm2RotateStopped))
-			-> releaseArmRotateJoystick(arm) . sendStopArmRotate(arm) 
-				. IOControl(Arm1RotateStopped = if((arm == arm1), true, Arm1RotateStopped), Arm2RotateStopped = if((arm == arm2), true, Arm2RotateStopped)) <> delta;
+				. IOControl() 
+			<> sendStopTableMove . IOControl())
+		+ releaseTableMoveJoystick . sendStopTableMove . IOControl()
+		+ sum arm: Arm . sum direction: JoystickDirection . (!emergencyMode) 
+			-> moveArmJoystick(arm, direction) . sendMoveArm(arm, translateJoystickToArmMovement(direction)) . IOControl()
+			<> sendStopArmMove(arm) . IOControl()
+		+ sum arm: Arm . sum direction: JoystickDirection. (!emergencyMode) 
+			-> rotateArmJoystick(arm, direction) . sendRotateArm(arm, translateJoystickToArmRotation(direction)) . IOControl()
+			<> sendStopArmMove(arm) . IOControl()
+		+ sum arm: Arm . receiveXRayImage(arm) . displayXRayImage . IOControl() % conditions here as well?
+		+ sum arm: Arm . releaseArmMoveJoystick(arm) . sendStopArmMove(arm) . IOControl()
+		+ sum arm: Arm . releaseArmRotateJoystick(arm) . sendStopArmRotate(arm) . IOControl() ;
 
-	Movement(TableMoveStopped: Bool, Arm1MoveStopped: Bool, Arm2MoveStopped: Bool, Arm1RotateStopped: Bool, Arm2RotateStopped: Bool) =
-		  sum direction: TableDirection. (TableMoveStopped) -> 
-		  	receiveMoveTable(direction) . moveTable(direction) 
-				. Movement(TableMoveStopped = false) <> delta
-		+ sum arm: Arm. (sum direction: ArmDirection. if((arm == arm1), Arm1MoveStopped, Arm2MoveStopped) 
+	Movement(TableMoveStopped: Bool, Arm1MoveStopped: Bool, Arm2MoveStopped: Bool, Arm1RotateStopped: Bool, Arm2RotateStopped: Bool, 
+				operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) =
+		sum recOperationOngoingStat: Bool. sum recEmergencyModeStat: Bool. sum recPatientOnTableStat: Bool . 
+		 		receiveStatus(recOperationOngoingStat, recEmergencyModeStat, recPatientOnTableStat) . 
+				Movement(operationOngoing = recOperationOngoingStat, emergencyMode = recEmergencyModeStat, patientOnTable = recPatientOnTableStat)
+		+ sum direction: TableDirection. 
+			(TableMoveStopped && !operationOngoing && !emergencyMode) -> 
+		  		receiveMoveTable(direction) . ( (TableMoveStopped && !operationOngoing) -> moveTable(direction) . Movement(TableMoveStopped = false) <> delta) 
+			<> delta
+		+ sum arm: Arm. (sum direction: ArmDirection. (if((arm == arm1), Arm1MoveStopped, Arm2MoveStopped) && !emergencyMode ) 
 			-> receiveMoveArm(arm, direction) . moveArm(arm, direction) 
 				. Movement(Arm1MoveStopped = if((arm == arm1), false, Arm1MoveStopped), Arm2MoveStopped = if((arm == arm2), false , Arm2MoveStopped)) <> delta) 
-		+ sum arm: Arm. (sum direction: ArmRotation.  if((arm == arm1), Arm1RotateStopped, Arm2RotateStopped) 
+		+ sum arm: Arm. (sum direction: ArmRotation.  (if((arm == arm1), Arm1RotateStopped, Arm2RotateStopped) && !emergencyMode)
 			-> receiveRotateArm(arm, direction) . rotateArm(arm, direction) 
 				. Movement(Arm1RotateStopped = if((arm == arm1), false, Arm1RotateStopped), Arm2RotateStopped = if((arm == arm2), false, Arm2RotateStopped)) <> delta)
 		+ (!TableMoveStopped) 
@@ -159,8 +162,11 @@ proc
 			-> atBoundaryRotationArm(arm) . stopRotateArm(arm) 
 				. Movement(Arm1RotateStopped = if((arm == arm1), true, Arm1RotateStopped), Arm2RotateStopped = if((arm == arm2),true, Arm2RotateStopped)) <> delta;
 
-	XRayControl( XRayOnArm1: Bool, XRayOnArm2: Bool, ImageArm1Display: Bool, ImageArm2Display: Bool) =
-		(XRayOnArm1) 
+	XRayControl( XRayOnArm1: Bool, XRayOnArm2: Bool, ImageArm1Display: Bool, ImageArm2Display: Bool, operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) =
+		sum recOperationOngoingStat: Bool. sum recEmergencyModeStat: Bool. sum recPatientOnTableStat:Bool . 
+		 		receiveStatus(recOperationOngoingStat, recEmergencyModeStat, recPatientOnTableStat) . 
+				XRayControl(operationOngoing = recOperationOngoingStat, emergencyMode = recEmergencyModeStat, patientOnTable = recPatientOnTableStat)
+		+ (XRayOnArm1) 
 			-> (receiveSwitchOffXray(arm1) . switchOffXray(arm1) . XRayControl(XRayOnArm1 = false, ImageArm1Display = false) 
 				+ receiveSwitchOnXray(arm1) . delta)
 				%+ ((!ImageArm1Display) -> sendXRayImage(arm1) . XRayControl(ImageArm1Display = true) <> delta))
@@ -177,6 +183,7 @@ init
 	allow(
 		{ 
 			% internal actions
+			updateStatusInternal,
 			switchOnXrayInternal,
 			switchOffXrayInternal,
 			moveTableInternal,
@@ -214,6 +221,7 @@ init
         },
 		comm(
 			{ 
+               sendStatus | receiveStatus -> updateStatusInternal,
                sendSwitchOnXray | receiveSwitchOnXray -> switchOnXrayInternal,
                sendSwitchOffXray | receiveSwitchOffXray -> switchOffXrayInternal,
                sendMoveTable | receiveMoveTable -> moveTableInternal,
@@ -224,6 +232,6 @@ init
 			   sendStopArmMove | receiveStopArmMove -> stopArmMoveInternal,
 			   sendStopArmRotate | receiveStopArmRotate -> stopArmRotateInternal
             },
-		Movement(true, true, true, true, true) || IOControl(false, false, false, true, true, true, true, true, false, false) || XRayControl(false, false, false, false)
+		Movement(true, true, true, true, true, false, false, false) || IOControl(false, false, false) || XRayControl(false, false, false, false, false, false, false)
 		)
 	);
