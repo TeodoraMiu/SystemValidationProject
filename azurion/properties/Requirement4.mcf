@@ -1,8 +1,15 @@
 nu X(
 	patientOnTable: Bool = false,
-	TableMoveStopped: Bool = true) .
-[weightSensorOn] X(true, TableMoveStopped)
-&& [weightSensorOff] X(false, TableMoveStopped)
-&& forall dirT: TableDirection. [moveTable(dirT)] X(patientOnTable, false)
-&& [stopMoveTable] X(patientOnTable, true)
-&& (val(!TableMoveStopped) => [true* .weightSensorOn]mu Y. ([!stopMoveTable] Y && <true>true))
+	operationOngoing: Bool = false,
+	emergencyMode: Bool = false,
+	stopMoveTable: Bool = true) . 
+[pressButton(stop)] X(patientOnTable, false, emergencyMode, stopMoveTable)
+&& [pressButton(emergency)] X(patientOnTable, false, true, stopMoveTable)
+&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false, stopMoveTable)
+&& [weightSensorOn] X(true, operationOngoing, emergencyMode, stopMoveTable)
+&& [weightSensorOff] X(false, operationOngoing, emergencyMode, stopMoveTable)
+&& (val(!emergencyMode && patientOnTable) 
+	=> [pressButton(start)]X(patientOnTable, true, emergencyMode, stopMoveTable))
+&& forall dirT: TableDirection. [moveTable(dirT)] X(patientOnTable, operationOngoing, emergencyMode, false)
+&& [stopMoveTable] X(patientOnTable, operationOngoing, emergencyMode, true)
+&& (val(operationOngoing) => forall dirT: TableDirection.[true.moveTable(dirT)]false)
