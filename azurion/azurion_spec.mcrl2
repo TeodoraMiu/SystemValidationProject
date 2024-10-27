@@ -110,8 +110,7 @@ proc
 							. sendRotateArm(arm, translateJoystickToArmRotation(direction)) 
 							. releaseArmRotateJoystick(arm) . sendStopArmRotate(arm) . IOControl()))) 
 		+ (patientOnTable)
-			-> weightSensorOff .sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, patient) 
-			. IOControl(operationOngoing = false, patientOnTable = false)
+			-> weightSensorOff .sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, patient)
 			<> weightSensorOn . IOControl(patientOnTable = true)
 		+ sum pedal: Pedal . pressPedal(pedal). (
 			(!emergencyMode && operationOngoing && patientOnTable) -> 
