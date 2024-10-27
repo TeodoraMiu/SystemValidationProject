@@ -113,10 +113,12 @@ proc
 			-> weightSensorOff .sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, patient) 
 			. IOControl(operationOngoing = false, patientOnTable = false)
 			<> weightSensorOn . IOControl(patientOnTable = true)
-		+ sum pedal: Pedal . (
+		+ sum pedal: Pedal . pressPedal(pedal). (
 			(!emergencyMode && operationOngoing && patientOnTable) -> 
-				( pressPedal(pedal) . sendSwitchOnXray(translatePedaltoArm(pedal)) 
-				. releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl()))
+				( sendSwitchOnXray(translatePedaltoArm(pedal)) 
+				. releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl())
+			<>	sendSwitchOffXray(translatePedaltoArm(pedal)). IOControl()
+			)
 		+ sum a: Arm .( 
 			receiveXRayImage(a) . displayXRayImage . IOControl());
 
@@ -140,13 +142,16 @@ proc
 	
 	StopAllEmergency(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) =
 		sendStopArmMove(arm1).sendStopArmMove(arm2) . sendStopArmRotate(arm1).sendStopArmRotate(arm2) 
-		. sendStopTableMove . sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, emergencySet)
-		; 
+		. sendStopTableMove . sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, emergencySet); 
 	sendSwitchOffAllXrays(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool, status: StatusIndicator) = 
-		sendSwitchOffXray(arm1).sendSwitchOffXray(arm2)
-		. (status == emergencySet) -> IOControl(false, true, patientOnTable)
-		. (status == operation) -> IOControl( false, emergencyMode, patientOnTable)
-		. (status == patient) -> IOControl( false, emergencyMode, false);	
+		sendSwitchOffXray(arm1).sendSwitchOffXray(arm2) . 
+		(status == emergencySet) -> 
+			IOControl(false, true, patientOnTable) 
+		<> 
+			((status == operation) -> 
+				IOControl(false, emergencyMode, patientOnTable) 
+			<> 
+				IOControl(false, emergencyMode, false));	
 
 init
 	allow(
