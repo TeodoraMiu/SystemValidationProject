@@ -115,10 +115,8 @@ proc
 		+ sum pedal: Pedal .  (
 			(!emergencyMode && operationOngoing && patientOnTable) -> 
 				( pressPedal(pedal) . sendSwitchOnXray(translatePedaltoArm(pedal)) 
-				. releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl())
-			)
-		+ sum a: Arm .( 
-			receiveXRayImage(a) . displayXRayImage . IOControl());
+				. receiveXRayImage(translatePedaltoArm(pedal)) . displayXRayImage
+				. releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl())) ;
 
 	Movement =
 		sum direction: TableDirection 
