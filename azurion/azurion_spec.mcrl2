@@ -54,9 +54,9 @@ act
 	releaseArmRotateJoystick: Arm;
     rotateArm: Arm # ArmRotation; 
 	stopRotateArm: Arm;
-	atBoundaryPositionTable;
-	atBoundaryPositionArm: Arm;
-	atBoundaryRotationArm: Arm;
+	atBoundaryPositionTable: Bool;
+	atBoundaryPositionArm: Arm # Bool;
+	atBoundaryRotationArm: Arm # Bool;
 	displayXRayImage;
  
 	% internal actions
@@ -120,15 +120,20 @@ proc
 
 	Movement =
 		sum direction: TableDirection 
-			.( receiveMoveTable(direction) .moveTable(direction) . atBoundaryPositionTable . stopMoveTable . Movement())
-			+ receiveStopTableMove . stopMoveTable . Movement()
+				.( receiveMoveTable(direction) . moveTable(direction) 
+				. sum boundryTrig : Bool. atBoundaryPositionTable(boundryTrig) 
+				.( (boundryTrig) -> stopMoveTable . receiveStopTableMove . Movement()
+					<> receiveStopTableMove . stopMoveTable . Movement())
+			)
 			+ sum arm: Arm. (
-				sum direction: ArmDirection . (receiveMoveArm(arm, direction) 
-					. moveArm(arm, direction) . atBoundaryPositionArm(arm) . stopMoveArm(arm) . Movement())
-				+ receiveStopArmMove(arm) . stopMoveArm(arm) . Movement()
-				+ sum direction: ArmRotation . ( receiveRotateArm(arm, direction) 
-					. rotateArm(arm, direction) . atBoundaryRotationArm(arm) . stopRotateArm(arm) . Movement())
-				+ receiveStopArmRotate(arm) . stopRotateArm(arm) . Movement()) ;
+				sum direction: ArmDirection . (receiveMoveArm(arm, direction) . moveArm(arm, direction) 
+					. sum boundryTrig : Bool . atBoundaryPositionArm(arm, boundryTrig) 
+					.( (boundryTrig) -> stopMoveArm(arm) .receiveStopArmMove(arm). Movement()
+						<> receiveStopArmMove(arm) . stopMoveArm(arm) . Movement()))
+				+ sum direction: ArmRotation . ( receiveRotateArm(arm, direction) . rotateArm(arm, direction) 
+					. sum boundryTrig : Bool . atBoundaryRotationArm(arm, boundryTrig) 
+					.( (boundryTrig) -> stopRotateArm(arm) . receiveStopArmRotate(arm) . Movement()
+						<> receiveStopArmRotate(arm) . stopRotateArm(arm) . Movement()))) ;
 
 	XRayControl =
 		sum arm: Arm .(
@@ -147,7 +152,7 @@ proc
 			((status == operation) -> 
 				IOControl(false, emergencyMode, patientOnTable) 
 			<> 
-				IOControl(false, emergencyMode, false));	
+				(status == patient) -> IOControl(false, emergencyMode, false));	
 
 init
 	allow(

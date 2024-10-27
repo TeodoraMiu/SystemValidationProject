@@ -2,9 +2,9 @@ nu X(
 	patientOnTable: Bool = false,
 	operationOngoing: Bool = false,
 	emergencyMode: Bool = false) .
-[pressButton(stop)] X(patientOnTable, false, emergencyMode)
-&& [pressButton(emergency)] X(patientOnTable, false, true)
+   [pressButton(emergency).true*.switchOffXray(arm2)] X(patientOnTable, false, true)
 && [releaseButton(emergency)] X(patientOnTable, operationOngoing, false)
 && [weightSensorOn] X(true, operationOngoing, emergencyMode)
-&& [weightSensorOff] X(false, false, emergencyMode)
+&& [weightSensorOff.true*.switchOffXray(arm2)] X(false, false, emergencyMode)
 && (val(!emergencyMode && patientOnTable) => [pressButton(start)]X(patientOnTable, true, emergencyMode))
+&& [pressButton(stop).true*.switchOffXray(arm2)] X(patientOnTable, false, emergencyMode)

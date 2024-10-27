@@ -1,1 +1,1 @@
-[true*.pressButton(emergency)]mu Z. forall arm: Arm.([!switchOffXray(arm)] Z && <true>true)
+forall arm: Arm.[true*.pressButton(emergency)]<true*.switchOffXray(arm)>true

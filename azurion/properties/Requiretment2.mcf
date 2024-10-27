@@ -1,1 +1,3 @@
-forall p:Pedal.([true*. releasePedal(p)]mu Y.([!switchOffXray(translatePedaltoArm(p))] Y && <true>true))
+%forall p:Pedal.([true*. releasePedal(p)]mu Y
+ %       .([!switchOffXray(translatePedaltoArm(p))] Y && <true>true))
+forall p:Pedal.[true*.releasePedal(p)]<true*.switchOffXray(translatePedaltoArm(p))>true
