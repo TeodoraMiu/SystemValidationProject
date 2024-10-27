@@ -100,7 +100,6 @@ proc
 			<>(
 				pressButton(emergency) 
 					. StopAllEmergency (operationOngoing, emergencyMode, patientOnTable)
-				+ releaseButton(emergency) . IOControl(emergencyMode = false)
 				+ sum direction: JoystickDirection 
 					.( ((!operationOngoing)->  moveTableJoystick(direction) 
 						. sendMoveTable(translateJoystickToTableMovement(direction)). releaseTableMoveJoystick . sendStopTableMove . IOControl())
