@@ -100,6 +100,7 @@ proc
 			<>(
 				pressButton(emergency) 
 					. StopAllEmergency (operationOngoing, emergencyMode, patientOnTable)
+				+ releaseButton(emergency) . IOControl(emergencyMode = false)
 				+ sum direction: JoystickDirection 
 					.( ((!operationOngoing)->  moveTableJoystick(direction) 
 						. sendMoveTable(translateJoystickToTableMovement(direction)). releaseTableMoveJoystick . sendStopTableMove . IOControl())
@@ -116,7 +117,7 @@ proc
 			(!emergencyMode && operationOngoing && patientOnTable) -> 
 				( sendSwitchOnXray(translatePedaltoArm(pedal)) 
 				. releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl())
-			<>	sendSwitchOffXray(translatePedaltoArm(pedal)). IOControl()
+			<>	releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl()
 			)
 		+ sum a: Arm .( 
 			receiveXRayImage(a) . displayXRayImage . IOControl());
