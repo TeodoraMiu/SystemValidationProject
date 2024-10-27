@@ -7,12 +7,9 @@ nu X(
 && [pressButton(emergency)] X(patientOnTable, false, true, TableMoveStopped)
 && [releaseButton(emergency)] X(patientOnTable, operationOngoing, false, TableMoveStopped)
 && [weightSensorOn] X(true, operationOngoing, emergencyMode, TableMoveStopped)
-&& [weightSensorOff] X(false, operationOngoing, emergencyMode, TableMoveStopped)
+&& [weightSensorOff] X(false, false, emergencyMode, TableMoveStopped)
 && (val(!emergencyMode && patientOnTable) 
 	=> [pressButton(start)]X(patientOnTable, true, emergencyMode, TableMoveStopped))
 && forall dirT: TableDirection. [moveTable(dirT)] X(patientOnTable, operationOngoing, emergencyMode, false)
 && [stopMoveTable] X(patientOnTable, operationOngoing, emergencyMode, true)
 && (val(operationOngoing || emergencyMode) => forall dirT:TableDirection. [true*.moveTable(dirT)]false)
-
-%&& (val(operationOngoing ) => forall dirJ: JoystickDirection.[true*.moveTable(dirT)]false)
-%&& (val(emergencyMode) => forall dirJ: JoystickDirection.[true*.moveTable(dirT)]false)

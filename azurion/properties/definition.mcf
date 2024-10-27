@@ -6,5 +6,5 @@ nu X(
 && [pressButton(emergency)] X(patientOnTable, false, true)
 && [releaseButton(emergency)] X(patientOnTable, operationOngoing, false)
 && [weightSensorOn] X(true, operationOngoing, emergencyMode)
-&& [weightSensorOff] X(false, operationOngoing, emergencyMode)
+&& [weightSensorOff] X(false, false, emergencyMode)
 && (val(!emergencyMode && patientOnTable) => [pressButton(start)]X(patientOnTable, true, emergencyMode))
