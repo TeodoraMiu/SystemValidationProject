@@ -1,14 +1,7 @@
-nu X(emergencyMode: Bool = false,
-	 Arm1MoveStopped: Bool = true,
-	 Arm2MoveStopped: Bool = true).
-[pressButton(emergency)] X(true, Arm1MoveStopped, Arm2MoveStopped)
-&& [releaseButton(emergency)] X(false, Arm1MoveStopped, Arm2MoveStopped)
-&& forall a: Arm. 
-	val(if((a == arm1), !Arm1MoveStopped, !Arm2MoveStopped))
-	=> [stopMoveArm(a)] X(emergencyMode, if(a == arm1, true, Arm1MoveStopped), if(a == arm2, true, Arm2MoveStopped))
-&& forall a: Arm.forall dirA:ArmDirection.
-	val(if((a == arm1), !Arm1MoveStopped, !Arm2MoveStopped))
-	=> [moveArm(a, dirA)] X(emergencyMode, if(a == arm1, false, Arm1MoveStopped), if(a == arm2, false, Arm2MoveStopped))
+nu X(emergencyMode: Bool = false
+).
+   [pressButton(emergency).true*.switchOffXray(arm2)] X(true)
+&& [releaseButton(emergency)] X(false)
 && forall a:Arm.forall dirJ:JoystickDirection 
-. (val(!emergencyMode && if(a == arm1, Arm1MoveStopped, Arm2MoveStopped)) 
+. (val(!emergencyMode) 
 	=> [true*.moveArmJoystick(a, dirJ)]mu Y. ([!moveArm(a, translateJoystickToArmMovement(dirJ))]Y && <true>true))
