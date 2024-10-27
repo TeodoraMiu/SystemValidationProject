@@ -94,7 +94,7 @@ proc
 	IOControl(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) = 
 		(operationOngoing) 
 			-> pressButton(stop) . sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, operation)
-			<> (patientOnTable && !emergencyMode) -> pressButton(start). sendStopTableMove. IOControl(operationOngoing = true)
+			<> (patientOnTable && !emergencyMode) -> pressButton(start). stopMoveTable. IOControl(operationOngoing = true)
 		+ (emergencyMode) 
 			-> releaseButton(emergency) . IOControl(emergencyMode = false)
 			<>(
@@ -112,11 +112,10 @@ proc
 		+ (patientOnTable)
 			-> weightSensorOff .sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, patient)
 			<> weightSensorOn . IOControl(patientOnTable = true)
-		+ sum pedal: Pedal . pressPedal(pedal). (
+		+ sum pedal: Pedal .  (
 			(!emergencyMode && operationOngoing && patientOnTable) -> 
-				( sendSwitchOnXray(translatePedaltoArm(pedal)) 
+				( pressPedal(pedal) . sendSwitchOnXray(translatePedaltoArm(pedal)) 
 				. releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl())
-			<>	releasePedal(pedal) . sendSwitchOffXray(translatePedaltoArm(pedal)) . IOControl()
 			)
 		+ sum a: Arm .( 
 			receiveXRayImage(a) . displayXRayImage . IOControl());
@@ -140,10 +139,10 @@ proc
 		);
 	
 	StopAllEmergency(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool) =
-		sendStopArmMove(arm1).sendStopArmMove(arm2) . sendStopArmRotate(arm1).sendStopArmRotate(arm2) 
-		. sendStopTableMove . sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, emergencySet); 
+		stopMoveArm(arm1).stopMoveArm(arm2) . stopRotateArm(arm1).stopRotateArm(arm2) 
+		. stopMoveTable . sendSwitchOffAllXrays(operationOngoing, emergencyMode, patientOnTable, emergencySet); 
 	sendSwitchOffAllXrays(operationOngoing: Bool, emergencyMode: Bool, patientOnTable: Bool, status: StatusIndicator) = 
-		sendSwitchOffXray(arm1).sendSwitchOffXray(arm2) . 
+		switchOffXray(arm1).switchOffXray(arm2) . 
 		(status == emergencySet) -> 
 			IOControl(false, true, patientOnTable) 
 		<> 
