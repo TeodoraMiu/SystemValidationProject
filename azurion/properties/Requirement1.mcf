@@ -1,11 +1,1 @@
-nu X(
-    patientOnTable: Bool = false,
-    operationOngoing: Bool = false,
-    emergencyMode: Bool = false).
-(val(!emergencyMode && patientOnTable) => [pressButton(start)]X(patientOnTable, true, emergencyMode)) 
-&& [pressButton(stop)] X(patientOnTable, false, emergencyMode)
-&& [pressButton(emergency)] X(patientOnTable, false, true)
-&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false)
-&& [weightSensorOn] X(true, operationOngoing, emergencyMode)
-&& [weightSensorOff] X(false, operationOngoing, emergencyMode)
-&& (val(!emergencyMode && operationOngoing && patientOnTable) => forall p:Pedal.[true*.pressPedal(p)]mu Y.([!switchOnXray(translatePedaltoArm(p))]Y || <switchOnXray(translatePedaltoArm(p))>true))
+forall p:Pedal.( [true*.pressPedal(p)]mu Y.([!switchOnXray(translatePedaltoArm(p))]Y && <true>true))

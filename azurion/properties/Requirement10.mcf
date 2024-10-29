@@ -1,0 +1,3 @@
+[true* . atBoundaryPositionTable(true)] mu X. ([!stopMoveTable] X && <true>true)
+&& forall a:Arm. ([true* . atBoundaryPositionArm(a,true)] mu X. ([stopMoveArm(a)] X && <true>true)
+    &&  [true* . atBoundaryRotationArm(a, true)] mu X. ([stopRotateArm(a)] X && <true>true))

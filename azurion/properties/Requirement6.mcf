@@ -1,4 +1,17 @@
 nu X(
+	patientOnTable: Bool = false,
 	operationOngoing: Bool = false,
-	emergencyMode: Bool = false).
-(val(!operationOngoing && !emergencyMode) => exists dirJ:JoystickDirection.[true*.moveTableJoystick(dirJ)]mu Y. ([!moveTable(translateJoystickToTableMovement(dirJ))]Y && <true>true))
+	emergencyMode: Bool = false) . 
+[pressButton(stop)] X(patientOnTable, false, emergencyMode)
+&& [pressButton(emergency)] X(patientOnTable, false, true)
+&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false)
+&& [weightSensorOn] X(true, operationOngoing, emergencyMode)
+&& [weightSensorOff] X(false, false, emergencyMode)
+&& (val(!emergencyMode && patientOnTable) 
+	=> [pressButton(start)]X(patientOnTable, true, emergencyMode))
+&& forall dirT: TableDirection. [moveTable(dirT)] X(patientOnTable, operationOngoing, emergencyMode)
+&& [stopMoveTable] X(patientOnTable, operationOngoing, emergencyMode)
+&& (val(!operationOngoing && !emergencyMode) 
+    => forall dirJ: JoystickDirection. 
+            [true*.moveTableJoystick(dirJ)]mu Y. 
+                ([!moveTable(translateJoystickToTableMovement(dirJ))]Y && <true>true))

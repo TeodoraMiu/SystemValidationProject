@@ -12,7 +12,9 @@
   <property>Requirement7_2</property>
   <property>Requirement8</property>
   <property>Requirement9</property>
+  <property>Requirement10</property>
+  <property>Requirement11</property>
  </properties>
  <jittyc>false</jittyc>
- <linearisation_method>regular</linearisation_method>
+ <linearisation_method>regular2</linearisation_method>
 </root>

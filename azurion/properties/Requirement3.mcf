@@ -1,1 +1,14 @@
-[true* . weightSensorOff]mu X. (forall a:Arm. [!switchOffXray(a)] X && <true>true)
+nu X(
+	patientOnTable: Bool = false,
+	operationOngoing: Bool = false,
+	emergencyMode: Bool = false, 
+	XrayOnArm1: Bool = false, 
+	XrayOnArm2: Bool = false) .
+   [pressButton(emergency).true*.switchOffXray(arm2)] X(patientOnTable, false, true, XrayOnArm1, XrayOnArm2)
+&& [releaseButton(emergency)] X(patientOnTable, operationOngoing, false, XrayOnArm1, XrayOnArm2)
+&& [weightSensorOn] X(true, operationOngoing, emergencyMode, XrayOnArm1, XrayOnArm2)
+&& [weightSensorOff.true*.switchOffXray(arm2)] X(false, false, emergencyMode, XrayOnArm1, XrayOnArm2)
+&& (val(!emergencyMode && patientOnTable) => [pressButton(start)]X(patientOnTable, true, emergencyMode, XrayOnArm1, XrayOnArm2))
+&& [pressButton(stop).true*.switchOffXray(arm2)] X(patientOnTable, false, emergencyMode, XrayOnArm1, XrayOnArm2)
+&& (val(patientOnTable && operationOngoing && !emergencyMode)=> ([true* .weightSensorOff]mu Y. ([!switchOffXray(arm1)] Y && <true>true)))
+&& (val(patientOnTable && operationOngoing && !emergencyMode)=> ([true* .weightSensorOff]mu Z. ([!switchOffXray(arm2)] Z && <true>true)))

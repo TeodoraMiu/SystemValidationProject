@@ -1,1 +1,3 @@
-nu X(emergencyMode: Bool = false).(val(emergencyMode)=> exists dirT:TableDirection.[true*.moveTable(dirT)]false && exists a:Arm.exists dirA:ArmDirection.[true*.moveArm(a, dirA)]false && exists a:Arm.exists rotA:ArmRotation.[true*.rotateArm(a, rotA)]false)
+forall dirT:TableDirection. [true*. pressButton(emergency) . !releaseButton(emergency)* . moveTable(dirT)]false 
+&& forall a:Arm. forall dirA: ArmDirection. [true*. pressButton(emergency) . !releaseButton(emergency)* .moveArm(a, dirA)]false 
+&& forall a:Arm. forall rotA: ArmRotation. [true* . pressButton(emergency) . !releaseButton(emergency)* .rotateArm(a, rotA)]false
